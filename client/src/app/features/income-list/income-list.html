@@ -1,0 +1,41 @@
+
+<div style="display:flex; align-items:center; gap:12px">
+  <h1>Income</h1>
+  <span class="spacer"></span>
+  <a mat-flat-button color="primary" routerLink="/income/new">
+    <mat-icon>add</mat-icon> Add income
+  </a>
+</div>
+
+@if (error()) { <p class="amount-expense">{{ error() }}</p> }
+@if (loading()) { <p>Loading…</p> }
+@if (!loading() && income().length === 0) { <p>No income yet. Add your first one.</p> }
+
+@if (income().length > 0) {
+  <table mat-table [dataSource]="income()" style="width:100%">
+    <ng-container matColumnDef="date">
+      <th mat-header-cell *matHeaderCellDef>Date</th>
+      <td mat-cell *matCellDef="let t">{{ t.date | date:'mediumDate' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="description">
+      <th mat-header-cell *matHeaderCellDef>Description</th>
+      <td mat-cell *matCellDef="let t">{{ t.description }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="category">
+      <th mat-header-cell *matHeaderCellDef>Category</th>
+      <td mat-cell *matCellDef="let t">{{ t.categoryName }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="amount">
+      <th mat-header-cell *matHeaderCellDef>Amount</th>
+      <td mat-cell *matCellDef="let t" class="amount-income">
+        {{ t.amount | currency:'ZAR':'symbol-narrow' }}
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+}

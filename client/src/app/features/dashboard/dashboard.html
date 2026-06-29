@@ -1,0 +1,33 @@
+<h1>Dashboard</h1>
+
+@if (loading()) {
+  <p>Loading…</p>
+} @else {
+  <div class="cards-row">
+    <mat-card>
+      <mat-card-content>
+        <p>Total Income</p>
+        <h2 class="amount-income">{{ totalIncome() | currency:'ZAR':'symbol-narrow' }}</h2>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-content>
+        <p>Total Expenses</p>
+        <h2 class="amount-expense">{{ totalExpenses() | currency:'ZAR':'symbol-narrow' }}</h2>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-content>
+        <p>Balance</p>
+        <h2>{{ balance() | currency:'ZAR':'symbol-narrow' }}</h2>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <p style="margin-top:24px">
+    <a mat-flat-button color="primary" routerLink="/expenses">View all expenses</a>
+  </p>
+}
+

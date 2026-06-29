@@ -1,0 +1,46 @@
+<h1>Add income</h1>
+
+<mat-card>
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()" style="display:flex; flex-direction:column; gap:12px">
+
+      <mat-form-field>
+        <mat-label>Category</mat-label>
+        <mat-select formControlName="categoryId">
+          @for (c of categories(); track c.id) {
+            <mat-option [value]="c.id">{{ c.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Amount (R)</mat-label>
+        <input matInput type="number" step="0.01" formControlName="amount" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="date" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker" />
+        <mat-datepicker #picker />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Description</mat-label>
+        <input matInput formControlName="description" maxlength="250" />
+      </mat-form-field>
+
+      @if (error()) {
+        <p class="amount-income">{{ error() }}</p>
+      }
+
+      <div style="display:flex; gap:12px">
+        <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Saving…' : 'Save' }}
+        </button>
+        <a mat-stroked-button routerLink="/income">Cancel</a>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>
+

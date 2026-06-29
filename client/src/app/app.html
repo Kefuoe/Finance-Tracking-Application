@@ -1,0 +1,11 @@
+<mat-toolbar color="primary">
+  <span>💰 FinanceTracker</span>
+  <span class="spacer"></span>
+  <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+  <a mat-button routerLink="/expenses" routerLinkActive="active">Expenses</a>
+  <a mat-button routerLink="/income" routerLinkActive="active">Income</a>
+</mat-toolbar>
+
+<main class="page">
+  <router-outlet />
+</main>

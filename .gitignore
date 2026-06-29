@@ -1,0 +1,40 @@
+# ---------- .NET / backend ----------
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+# EF / build artifacts that sometimes land at the solution root
+[Dd]ebug/
+[Rr]elease/
+
+# ---------- Angular / frontend ----------
+**/node_modules/
+**/dist/
+**/tmp/
+**/out-tsc/
+**/.angular/cache/
+npm-debug.log
+yarn-error.log
+**/coverage/
+
+# ---------- secrets / local config ----------
+# Keep appsettings.json (it's templated), but never commit user-secrets / local overrides
+appsettings.*.local.json
+*.Development.local.json
+.env
+.env.*
+
+# ---------- IDEs / editors ----------
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+.history/*
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
