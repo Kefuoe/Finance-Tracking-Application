@@ -2,8 +2,8 @@
 
 > Personal budgeting / expense-tracking app. Dark-themed, ASP.NET Core 9 backend (Clean Architecture) + Angular 21 frontend (Angular Material). ZAR currency.
 >
-> **Status:** Working MVP with income + expenses + categories. **Backend authentication (JWT) is fully implemented** — register/login, password hashing, `[Authorize]`-protected transaction endpoints, and the old hardcoded `DemoUserId` has been removed. **Frontend auth is not yet built** (no login/register UI, no token storage, no HTTP interceptor, no route guard), so the SPA currently sends no token and the protected `Income`/`Expenses` endpoints return `401` until that work lands — see §3.9 and §5.
-> **Last updated:** 2026-06-29
+> **Status:** Working MVP with income + expenses + categories. **Authentication (JWT) is now fully implemented end-to-end.** Backend: register/login, password hashing, `[Authorize]`-protected transaction endpoints, old hardcoded `DemoUserId` removed. **Frontend auth is now built too** — `AuthService` (token + user in `localStorage`), an HTTP interceptor attaching `Authorization: Bearer`, a functional route guard, and login/register components — so the SPA authenticates and the protected `Income`/`Expenses` endpoints work. See §3.9.
+> **Last updated:** 2026-07-06
 
 ---
 
@@ -15,7 +15,7 @@
 | **Database** | SQL Server LocalDB (`(localdb)\MSSQLLocalDB`, DB `FinanceTrackerDb`), EF Core, code-first migrations |
 | **Frontend** | Angular 21 (standalone components, signals, zoneless), Angular Material 3 (dark theme) |
 | **Currency** | ZAR — displayed as `R` (`currency:'ZAR':'symbol-narrow'`) |
-| **Auth** | **Backend: JWT bearer implemented** (Identity `PasswordHasher`, custom int-keyed `User`, per-request user id from the token). **Frontend: not yet implemented.** |
+| **Auth** | **JWT bearer, end-to-end.** Backend: Identity `PasswordHasher`, custom int-keyed `User`, per-request user id from the token. Frontend: `AuthService` + `localStorage`, HTTP interceptor, route guard, login/register UI. |
 
 ### Runtime topology
 - Backend: `http://localhost:5127` (run with `dotnet run --launch-profile http`)
@@ -178,9 +178,10 @@ record AuthResponse(string Token, string Name, string Email);
 ## 3. Frontend
 
 ### 3.1 Stack
-- Angular `^21.0.0`, Angular Material / CDK `^21.2.14`, RxJS `7.8`, TypeScript `5.9`.
+- Angular `^21.0.0`, Angular Material / CDK `^21.2.14`, `@angular/animations` `^21.0.0`, RxJS `7.8`, TypeScript `5.9`.
 - Standalone components, **zoneless** change detection, signals, new control flow (`@if`/`@for`), lazy routes via `loadComponent`.
-- Build/test: Angular CLI `^21`, Vitest for unit tests (service specs exist for transaction/income/category).
+- Build/test: Angular CLI `^21`, Vitest for unit tests (service specs exist for transaction/income/category/auth).
+- ⚠️ `@angular/animations` was recently added to `package.json`: `app.config.ts` uses `provideAnimationsAsync()` (which lazily imports `@angular/animations/browser`), but the package had been missing — `ng serve` tolerated the lazy import while `ng build` failed to resolve it. Now fixed.
 
 ### 3.2 Structure
 
@@ -194,33 +195,44 @@ client/src/
     ├── app.ts / app.html / app.scss     (shell: toolbar + router-outlet)
     ├── app.config.ts                    (providers)
     ├── app.routes.ts                    (routes)
-    ├── models/transaction.ts            (interfaces; legacy hardcoded categories)
+    ├── models/
+    │   ├── transaction.ts               (interfaces; legacy hardcoded categories)
+    │   └── auth.ts                       (RegisterRequest, LoginRequest, AuthResponse, AuthUser)
     ├── services/
     │   ├── transaction.service.ts       (expenses — HTTP + signal store)
     │   ├── income.service.ts            (income — HTTP + signal store)
-    │   └── category.service.ts          (categories — fetch by type)
+    │   ├── category.service.ts          (categories — fetch by type)
+    │   └── auth.service.ts              (register/login, token+user signals, localStorage)
+    ├── interceptors/
+    │   └── auth-interceptor.ts          (attaches Authorization: Bearer)
+    ├── guards/
+    │   └── auth.guard.ts                 (functional CanActivateFn → redirect to /login)
     └── features/
         ├── dashboard/      (totals cards)
         ├── expense-list/   (mat-table)
         ├── expense-form/    (reactive form to add)
         ├── income-list/    (mat-table)
-        └── income-form/    (reactive form to add)
+        ├── income-form/    (reactive form to add)
+        ├── login/          (reactive form; email + password)
+        └── register/       (reactive form; name + email + password)
 ```
 
 ### 3.3 App config (`app.config.ts`)
-Providers: `provideBrowserGlobalErrorListeners`, `provideZonelessChangeDetection`, `provideRouter(routes)`, `provideHttpClient`, `provideAnimationsAsync`, `provideNativeDateAdapter`. (No auth interceptor wired yet — see §3.9.)
+Providers: `provideBrowserGlobalErrorListeners`, `provideZonelessChangeDetection`, `provideRouter(routes)`, `provideHttpClient(withInterceptors([authInterceptor]))`, `provideAnimationsAsync`, `provideNativeDateAdapter`. The `authInterceptor` is now wired in (see §3.9).
 
 ### 3.4 Routing (`app.routes.ts`)
-| Path | Component (lazy) |
-|---|---|
-| `''` | `Dashboard` |
-| `expenses` | `ExpenseList` |
-| `expenses/:id` | `ExpenseForm` |
-| `income` | `IncomeList` |
-| `income/:id` | `IncomeForm` |
-| `**` | redirect → `''` |
+| Path | Component (lazy) | Guarded |
+|---|---|---|
+| `login` | `Login` | — (public) |
+| `register` | `Register` | — (public) |
+| `''` | `Dashboard` | `authGuard` |
+| `expenses` | `ExpenseList` | `authGuard` |
+| `expenses/:id` | `ExpenseForm` | `authGuard` |
+| `income` | `IncomeList` | `authGuard` |
+| `income/:id` | `IncomeForm` | `authGuard` |
+| `**` | redirect → `''` | — |
 
-> The "Add" links point to `/expenses/new` and `/income/new`, matched by the `:id` routes (`id = "new"`). The forms ignore the route param and always **create** — there is no edit/load-by-id flow wired up yet. No routes are guarded.
+> The "Add" links point to `/expenses/new` and `/income/new`, matched by the `:id` routes (`id = "new"`). The forms ignore the route param and always **create** — there is no edit/load-by-id flow wired up yet. All data routes are now guarded by `authGuard`; unauthenticated users are redirected to `/login` with a `returnUrl` query param.
 
 ### 3.5 Models (`models/transaction.ts`)
 - `TransactionDto` and `CreateTransactionRequest` mirror the backend DTOs (dates as ISO strings).
@@ -231,10 +243,11 @@ Providers: `provideBrowserGlobalErrorListeners`, `provideZonelessChangeDetection
 - **`TransactionService`** (expenses) — base `${apiBaseUrl}/Expenses`; signals `expenses`, `loading`, `error`; `loadExpenses()`, `getById(id)`, `create(req)` (prepends created item).
 - **`IncomeService`** — base `${apiBaseUrl}/Income`; signals `income`, `loading`, `error`; `loadIncome()`, `getById(id)`, `create(req)` (prepends created item). Same shape as `TransactionService`.
 - **`CategoryService`** — base `${apiBaseUrl}/categories`; `getExpenseCategories()` (`?type=Expense`) and `getIncomeCategories()` (`?type=Income`), each returning `Promise<Category[]>`.
+- **`AuthService`** — base `${apiBaseUrl}/auth`; `register(req)` / `login(req)` POST and persist the result; signals `token` and `user` (both seeded from `localStorage` so a refresh stays logged in) plus a `isAuthenticated` computed; `logout()` clears storage and signals. See §3.9.
 
 ### 3.7 Components
 
-**Shell (`app`)** — Material toolbar with brand and Dashboard / Expenses / **Income** nav links.
+**Shell (`app`)** — Material toolbar with brand. When authenticated: Dashboard / Expenses / **Income** nav links, the signed-in user's name, and a **Log out** button (clears the session and routes to `/login`). When unauthenticated: **Log in** / **Register** links only. Toggled reactively via `AuthService.isAuthenticated()`.
 
 **Dashboard** — loads both expenses and income on init; computed `totalExpenses`, **`totalIncome` (now real, summed from `IncomeService`)**, `balance = income − expenses`. Material cards + links.
 
@@ -246,13 +259,26 @@ Providers: `provideBrowserGlobalErrorListeners`, `provideZonelessChangeDetection
 
 **IncomeForm** — mirror of ExpenseForm; categories from `CategoryService.getIncomeCategories()`; navigates to `/income` on success.
 
+**Login** — reactive form (`FormBuilder.nonNullable.group`): `email` (required, email), `password` (required); `loading`/`error` signals. On submit calls `AuthService.login(...)`, then navigates to the `returnUrl` query param (or `/`). A failed login shows a generic "Invalid email or password." (matching the backend's non-enumerating `401`). Link to `/register`.
+
+**Register** — mirror of Login plus a `name` field (required, max 100) and `password` (required, min 6 — client-side UX only; the backend enforces no policy yet). On submit calls `AuthService.register(...)` then navigates to `/`. Catches `409 Conflict` → "That email is already registered."; other errors → generic message. Link to `/login`.
+
 ### 3.8 Theming (`styles.scss`)
 - Material 3 dark theme via `mat.theme(...)` — `theme-type: dark`, primary `$azure-palette`, tertiary `$cyan-palette`, Roboto, density 0.
 - App background `#0d0d0d`, text `#f5f5f5`.
 - Helper classes: `.page` (max-width 960px centered), `.cards-row` (responsive grid), `.amount-income` (green `#4ade80`), `.amount-expense` (red `#f87171`), `.spacer`.
 
-### 3.9 Auth — NOT yet implemented (frontend)
-There is currently **no** login/register UI, no `AuthService`, no token storage, no HTTP interceptor to attach `Authorization: Bearer`, and no route guard. Because the backend `Income`/`Expenses` controllers are now `[Authorize]`d, the SPA's data calls will return **`401 Unauthorized`** until this is built. This is the immediate next task — see roadmap §6.1.
+### 3.9 Auth — implemented (frontend)
+
+The client-side auth is now built, so the SPA authenticates against the `[Authorize]`d backend instead of getting `401`s.
+
+- **`models/auth.ts`** — `RegisterRequest`, `LoginRequest`, `AuthResponse` (mirror the backend DTOs) and `AuthUser` (`{ name, email }`, the subset kept on the client).
+- **`AuthService`** — `register`/`login` POST to `/api/auth` and store the `AuthResponse`; keeps `token` and `user` in `localStorage` (keys `ft_token`, `ft_user`) and in signals seeded from storage on startup (survives refresh); `isAuthenticated` computed; `logout()` clears both.
+- **`authInterceptor`** (`interceptors/auth-interceptor.ts`) — functional `HttpInterceptorFn`; clones outgoing requests to add `Authorization: Bearer <token>` when a token exists (public `/categories` and the login/register calls pass through untouched). Wired via `withInterceptors([authInterceptor])` in `app.config.ts`.
+- **`authGuard`** (`guards/auth.guard.ts`) — functional `CanActivateFn`; allows navigation when `isAuthenticated()`, otherwise returns a `UrlTree` redirecting to `/login` with a `returnUrl` query param. Applied to all data routes (§3.4).
+- **`Login` / `Register` components** — Material reactive forms with validation, loading/error state, and `409` handling on register (§3.7).
+
+**Not yet done (see §5 / §6):** no client-side token-expiry / refresh handling (an expired token yields `401`s with no auto-logout), and the interceptor does not yet catch `401` to log the user out automatically.
 
 ---
 
@@ -271,13 +297,13 @@ ng serve                                 # http://localhost:4200
 
 The dev environment file points the frontend at `http://localhost:5127/api`, so no proxy is required.
 
-> Before running for real, set a proper `Jwt:Key` (see §2.4). To exercise the protected endpoints today (before the frontend auth lands), `POST /api/auth/register`, copy the returned token, and use Swagger's "Authorize" button or a `Bearer` header in curl/Postman.
+> Before running for real, set a proper `Jwt:Key` (see §2.4). In the browser, register or log in via the SPA — the token is stored and attached automatically. To exercise the protected endpoints directly, `POST /api/auth/register`, copy the returned token, and use Swagger's "Authorize" button or a `Bearer` header in curl/Postman.
 
 ---
 
 ## 5. Known gaps / limitations
 
-- **Frontend auth missing.** No login/register, token storage, interceptor, or route guard. With the backend now requiring a token, the SPA's `Income`/`Expenses` calls 401. (Backend auth itself is done — §2.4.)
+- **No client-side token expiry / refresh handling.** Frontend auth is built (§3.9), but an expired 60-min token just yields `401`s — the interceptor does not catch `401` to auto-logout, and there is no refresh-token flow.
 - **Placeholder JWT secret committed.** `Jwt:Key` in `appsettings.json` is the literal placeholder string and lives in source control — replace and relocate to secrets/env before any real use.
 - **`/api/categories` is public** (no `[Authorize]`). Fine for shared seed data, but worth a conscious decision.
 - **No edit/delete.** The `:id` routes resolve to the create forms and ignore the id; there is no `PUT`/`DELETE` endpoint or per-row delete.
@@ -291,10 +317,10 @@ The dev environment file points the frontend at `http://localhost:5127/api`, so 
 
 ## 6. Roadmap (next steps)
 
-1. **Frontend auth (the immediate task)** — `AuthService` (register/login → store JWT in `localStorage`), an HTTP interceptor that attaches `Authorization: Bearer <token>`, a functional route guard (`CanActivateFn`) redirecting to `/login` when unauthenticated, and login/register components. This unblocks every protected call.
-2. **Edit & delete** — `PUT`/`DELETE` on `/api/expenses/{id}` and `/api/income/{id}` + form load-by-id and per-row delete actions.
+1. ~~**Frontend auth**~~ — ✅ **Done** (2026-07-06). `AuthService` (register/login → JWT + user in `localStorage`), an HTTP interceptor attaching `Authorization: Bearer <token>`, a functional route guard redirecting to `/login`, and login/register components. See §3.9.
+2. **Edit & delete** — `PUT`/`DELETE` on `/api/expenses/{id}` and `/api/income/{id}` + form load-by-id and per-row delete actions. *(Now the immediate task.)*
 3. **Dashboard summary endpoint** — e.g. `GET /api/dashboard/summary` returning income/expense/balance server-side instead of loading full lists client-side.
 4. **Frontend cleanup** — remove `EXPENSE_CATEGORIES` and the duplicate `Category` interface; remove unused `WeatherForecast*` files from the API.
-5. **Harden auth** — real `Jwt:Key` via user-secrets/env, consider token expiry/refresh handling on the client, and decide whether `/api/categories` should require auth.
+5. **Harden auth** — real `Jwt:Key` via user-secrets/env, add client-side token expiry/refresh handling (e.g. catch `401` in the interceptor → auto-logout), and decide whether `/api/categories` should require auth.
 6. **(Optional) Graduate to full ASP.NET Identity** if roles/lockout/2FA/external logins are ever needed (see §2.7).
 ```
