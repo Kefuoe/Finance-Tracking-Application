@@ -1,11 +1,18 @@
 <mat-toolbar color="primary">
   <span>💰 FinanceTracker</span>
   <span class="spacer"></span>
+
+  @if (auth.isAuthenticated()) {
   <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
   <a mat-button routerLink="/expenses" routerLinkActive="active">Expenses</a>
   <a mat-button routerLink="/income" routerLinkActive="active">Income</a>
+  <span class="user-name">{{ auth.user()?.name }}</span>
+  <button mat-button (click)="logout()">Log out</button>
+  } @else {
+  <a mat-button routerLink="/login" routerLinkActive="active">Log in</a>
+  <a mat-button routerLink="/register" routerLinkActive="active">Register</a>
+  }
 </mat-toolbar>
-
 <main class="page">
   <router-outlet />
 </main>
