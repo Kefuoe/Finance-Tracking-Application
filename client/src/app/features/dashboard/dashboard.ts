@@ -3,8 +3,7 @@ import { CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { TransactionService } from '../../services/transaction.service';
-import { IncomeService } from '../../services/income.service';
+import { DashboardService } from '../../services/dashboard.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,18 +12,16 @@ import { IncomeService } from '../../services/income.service';
   styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {
-  private svc = inject(TransactionService);
+  private svc = inject(DashboardService);
 
-  expenses =this.svc.expenses;
-  loading = this.svc.loading
+  loading = this.svc.loading;
+  error = this.svc.error;
 
-  private incomeSvc = inject(IncomeService);
-  income = this.incomeSvc.income;
+  totalIncome = computed(() => this.svc.summary()?.totalIncome ?? 0);
+  totalExpenses = computed(() => this.svc.summary()?.totalExpenses ?? 0);
+  balance = computed(() => this.svc.summary()?.balance ?? 0);
 
-  totalExpenses = computed(() => this.expenses().reduce((sum, t) => sum + t.amount, 0));
-  totalIncome = computed(() => this.income().reduce((sum, t) => sum + t.amount, 0));
-  balance = computed(() => this.totalIncome() - this.totalExpenses());
-
-  ngOnInit() { this.svc.loadExpenses(); this.incomeSvc.loadIncome(); }
-
+  ngOnInit() {
+    this.svc.loadSummary();
+  }
 }

@@ -28,9 +28,20 @@ export const EXPENSE_CATEGORIES: Category[] = [
   { id: 3, name: 'Transport', type: 'Expense' },
   { id: 4, name: 'Rent', type: 'Expense' },
 ]
-
 export interface Category {
   id: number;
   name: string;
   type: string;   // "Income" | "Expense"
 }
+
+//Matches the backend TransactionDto
+export interface TransactionDto{
+    id: number;
+    amount: number;
+    date: string;                      //ISO string from Json
+    description: string;
+    categoryId: number;
+    categoryName: string;
+    categoryType: string;             //"Income" or "Expense"
+}
+

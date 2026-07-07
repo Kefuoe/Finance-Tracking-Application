@@ -13,10 +13,11 @@ namespace FinanceTracker.Application.Transactions
     string Description);
 
     public record TransactionDto(
-        int Id,
-        decimal Amount,
-        DateTime Date,
-        string Description,
-        string CategoryName,
-        string CategoryType);
+    int Id,
+    decimal Amount,
+    DateTime Date,
+    string Description,
+    int CategoryId,
+    string CategoryName,
+    string CategoryType);
 }

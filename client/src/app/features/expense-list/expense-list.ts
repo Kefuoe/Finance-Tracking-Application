@@ -20,10 +20,20 @@ export class ExpenseList implements OnInit {
   loading = this.svc.loading
   error = this.svc.error;
 
-  displayedColumns = ['date', 'description', 'category', 'amount'];
+  displayedColumns = ['date', 'description', 'category', 'amount', 'actions'];
 
   ngOnInit() {
     this.svc.loadExpenses();
   }
+
+  async remove(id: number) {
+    if (!confirm('Delete this expense?')) return;
+    try {
+      await this.svc.remove(id);
+    } catch {
+      this.error.set('Could not delete. Please try again.');
+    }
+  }
+
 
 }

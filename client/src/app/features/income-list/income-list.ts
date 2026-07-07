@@ -20,11 +20,20 @@ export class IncomeList implements OnInit {
   income = this.svc.income;
   loading = this.svc.loading
   error = this.svc.error;
-
-  displayedColumns = ['date', 'description', 'category', 'amount'];
+  
+  displayedColumns = ['date', 'description', 'category', 'amount', 'actions'];
 
   ngOnInit() {
     this.svc.loadIncome();
+  }
+
+  async remove(id: number) {
+    if (!confirm('Delete this income?')) return;
+    try {
+      await this.svc.remove(id);
+    } catch {
+      this.error.set('Could not delete. Please try again.');
+    }
   }
 
 }

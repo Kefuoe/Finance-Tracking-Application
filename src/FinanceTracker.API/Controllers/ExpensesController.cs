@@ -20,8 +20,6 @@ namespace FinanceTracker.API.Controllers
         {
             _db = db;
             _currentUser = currentUser;
-
-
         }
 
         //GET: api/expenses
@@ -38,6 +36,7 @@ namespace FinanceTracker.API.Controllers
                     t.Amount,
                     t.Date,
                     t.Description,
+                    t.CategoryId,
                     t.Category!.Name,
                     t.Category.Type.ToString()))
                 .ToListAsync(cancellationToken);
@@ -58,6 +57,7 @@ namespace FinanceTracker.API.Controllers
                     t.Amount,
                     t.Date,
                     t.Description,
+                    t.CategoryId,
                     t.Category!.Name,
                     t.Category.Type.ToString()))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -95,11 +95,65 @@ namespace FinanceTracker.API.Controllers
                 transaction.Amount,
                 transaction.Date,
                 transaction.Description,
+                transaction.CategoryId,
                 category.Name,
                 category.Type.ToString());
 
             return CreatedAtAction(nameof(GetExpenseById), new { id = transaction.Id }, dto);
         }
 
+        // PUT: api/expenses/{id}
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateExpense(int id, CreateTransactionRequest request, CancellationToken cancellationToken)
+        {
+            var userId = _currentUser.UserId;
+            var transaction = await _db.Transactions
+                .Where(t => t.Id == id && t.UserId == userId && t.Category!.Type == CategoryType.Expense)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (transaction == null) return NotFound();
+
+            var category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == request.CategoryId && c.Type == CategoryType.Expense, cancellationToken);
+
+            if (category == null)
+                return BadRequest(new { Error = "Category not found or is not an Expense category." });
+
+            transaction.CategoryId = request.CategoryId;
+            transaction.Amount = request.Amount;
+            transaction.Date = request.Date;
+            transaction.Description = request.Description;
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var dto = new TransactionDto(
+                transaction.Id,
+                transaction.Amount,
+                transaction.Date,
+                transaction.Description,
+                transaction.CategoryId,
+                category.Name,
+                category.Type.ToString());
+
+            return Ok(dto);
+        }
+
+        // DELETE: api/expenses/{id}
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteExpense(int id, CancellationToken cancellationToken)
+        {
+            var userId = _currentUser.UserId;
+            var transaction = await _db.Transactions
+                .Where(t => t.Id == id && t.UserId == userId && t.Category!.Type == CategoryType.Expense)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (transaction == null) return NotFound();
+
+            _db.Transactions.Remove(transaction);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return NoContent();
+        }
     }
 }

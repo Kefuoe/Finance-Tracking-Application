@@ -38,5 +38,16 @@ export class TransactionService {
     return created;
   }
 
+  async update(id: number, req: CreateTransactionRequest): Promise<TransactionDto> {
+    const updated = await firstValueFrom(
+      this.http.put<TransactionDto>(`${this.base}/${id}`, req));
+    this.expenses.update(list => list.map(t => (t.id === id ? updated : t)));
+    return updated;
+  }
+
+  async remove(id: number): Promise<void> {
+    await firstValueFrom(this.http.delete<void>(`${this.base}/${id}`));
+    this.expenses.update(list => list.filter(t => t.id !== id));
+  }
 
 }

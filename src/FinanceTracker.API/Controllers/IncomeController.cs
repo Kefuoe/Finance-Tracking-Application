@@ -17,10 +17,9 @@ namespace FinanceTracker.API.Controllers
         private readonly ICurrentUserService _currentUser;
 
         public IncomeController(IApplicationDbContext db, ICurrentUserService currentUser)
-        { 
+        {
             _db = db;
             _currentUser = currentUser;
-
         }
 
         // GET: api/income
@@ -35,7 +34,7 @@ namespace FinanceTracker.API.Controllers
                 .OrderByDescending(t => t.Date)
                 .Select(t => new TransactionDto(
                     t.Id, t.Amount, t.Date, t.Description,
-                    t.Category!.Name, t.Category.Type.ToString()))
+                    t.CategoryId, t.Category!.Name, t.Category.Type.ToString()))
                 .ToListAsync(cancellationToken);
 
             return Ok(items);
@@ -51,7 +50,7 @@ namespace FinanceTracker.API.Controllers
                 .Where(t => t.Id == id && t.UserId == userId && t.Category!.Type == CategoryType.Income)
                 .Select(t => new TransactionDto(
                     t.Id, t.Amount, t.Date, t.Description,
-                    t.Category!.Name, t.Category.Type.ToString()))
+                    t.CategoryId, t.Category!.Name, t.Category.Type.ToString()))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (dto == null) return NotFound();
@@ -84,9 +83,58 @@ namespace FinanceTracker.API.Controllers
 
             var dto = new TransactionDto(
                 transaction.Id, transaction.Amount, transaction.Date,
-                transaction.Description, category.Name, category.Type.ToString());
+                transaction.Description, transaction.CategoryId, category.Name, category.Type.ToString());
 
             return CreatedAtAction(nameof(GetIncomeById), new { id = transaction.Id }, dto);
+        }
+
+        // PUT: api/income/{id}
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateIncome(int id, CreateTransactionRequest request, CancellationToken cancellationToken)
+        {
+            var userId = _currentUser.UserId;
+            var transaction = await _db.Transactions
+                .Where(t => t.Id == id && t.UserId == userId && t.Category!.Type == CategoryType.Income)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (transaction == null) return NotFound();
+
+            var category = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == request.CategoryId && c.Type == CategoryType.Income, cancellationToken);
+
+            if (category == null)
+                return BadRequest(new { Error = "Category not found or is not an Income category." });
+
+            transaction.CategoryId = request.CategoryId;
+            transaction.Amount = request.Amount;
+            transaction.Date = request.Date;
+            transaction.Description = request.Description;
+
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var dto = new TransactionDto(
+                transaction.Id, transaction.Amount, transaction.Date,
+                transaction.Description, transaction.CategoryId, category.Name, category.Type.ToString());
+
+            return Ok(dto);
+        }
+
+        // DELETE: api/income/{id}
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteIncome(int id, CancellationToken cancellationToken)
+        {
+            var userId = _currentUser.UserId;
+            var transaction = await _db.Transactions
+                .Where(t => t.Id == id && t.UserId == userId && t.Category!.Type == CategoryType.Income)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (transaction == null) return NotFound();
+
+            _db.Transactions.Remove(transaction);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            return NoContent();
         }
     }
 }

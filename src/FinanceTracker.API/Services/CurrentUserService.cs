@@ -1,7 +1,5 @@
 ﻿using System.Security.Claims;
 using FinanceTracker.Application.Common;
-
-
 namespace FinanceTracker.API.Services
 {
     //This service provides the current authenticated user's ID by reading it from the HTTP context (the JWT claims).
@@ -11,8 +9,8 @@ namespace FinanceTracker.API.Services
 
         private readonly IHttpContextAccessor _accessor;
 
-        public CurrentUserService(IHttpContextAccessor accessor) => _accessor = accessor;   
-    
+        public CurrentUserService(IHttpContextAccessor accessor) => _accessor = accessor;
+
         public int? UserId
         {
             get
@@ -21,8 +19,8 @@ namespace FinanceTracker.API.Services
                 // looks for the claim named NameIdentifier
                 var value = _accessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                return int.TryParse(value, out var id) 
-                    ? id 
+                return int.TryParse(value, out var id)
+                    ? id
                     : throw new UnauthorizedAccessException("No authenticated user.");
 
             }

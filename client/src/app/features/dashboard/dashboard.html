@@ -1,5 +1,7 @@
 <h1>Dashboard</h1>
 
+@if (error()) { <p class="amount-expense">{{ error() }}</p> }
+
 @if (loading()) {
   <p>Loading…</p>
 } @else {
