@@ -2,7 +2,7 @@
 
 <mat-card>
   <mat-card-content>
-    <form [formGroup]="form" (ngSubmit)="submit()" style="display:flex; flex-direction:column; gap:12px">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form-fields">
 
       <mat-form-field>
         <mat-label>Category</mat-label>
@@ -34,7 +34,7 @@
         <p class="amount-expense">{{ error() }}</p>
       }
 
-      <div style="display:flex; gap:12px">
+      <div class="form-actions">
         <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
           {{ submitting() ? 'Saving…' : 'Save' }}
         </button>

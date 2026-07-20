@@ -1,18 +1,52 @@
-<mat-toolbar color="primary">
-  <span>💰 FinanceTracker</span>
-  <span class="spacer"></span>
+@if (auth.isAuthenticated()) {
+<mat-sidenav-container class="shell">
+  <mat-sidenav mode="side" opened class="sidebar">
+    <div class="brand">💰 <span>FinanceTracker</span></div>
 
-  @if (auth.isAuthenticated()) {
-  <a mat-button routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
-  <a mat-button routerLink="/expenses" routerLinkActive="active">Expenses</a>
-  <a mat-button routerLink="/income" routerLinkActive="active">Income</a>
-  <span class="user-name">{{ auth.user()?.name }}</span>
-  <button mat-button (click)="logout()">Log out</button>
-  } @else {
-  <a mat-button routerLink="/login" routerLinkActive="active">Log in</a>
-  <a mat-button routerLink="/register" routerLinkActive="active">Register</a>
-  }
-</mat-toolbar>
-<main class="page">
+    <mat-nav-list>
+      <a mat-list-item routerLink="/" routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <span matListItemTitle>Dashboard</span>
+      </a>
+      <a mat-list-item routerLink="/expenses" routerLinkActive="active">
+        <mat-icon matListItemIcon>trending_down</mat-icon>
+        <span matListItemTitle>Expenses</span>
+      </a>
+      <a mat-list-item routerLink="/income" routerLinkActive="active">
+        <mat-icon matListItemIcon>trending_up</mat-icon>
+        <span matListItemTitle>Income</span>
+      </a>
+      <a mat-list-item routerLink="/budgets" routerLinkActive="active">
+        <mat-icon matListItemIcon>account_balance_wallet</mat-icon>
+        <span matListItemTitle>Budgets</span>
+      </a>
+    </mat-nav-list>
+
+    <span class="spacer"></span>
+
+    <mat-nav-list>
+      <a mat-list-item (click)="logout()">
+        <mat-icon matListItemIcon>logout</mat-icon>
+        <span matListItemTitle>Log out</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="content">
+    <header class="topbar">
+      <span class="spacer"></span>
+      <div class="avatar">{{ initials() }}</div>
+      <span class="user-name">{{ auth.user()?.name }}</span>
+    </header>
+
+    <main class="page">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
+} @else {
+<main class="auth-page">
   <router-outlet />
 </main>
+}

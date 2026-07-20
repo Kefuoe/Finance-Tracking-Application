@@ -18,6 +18,8 @@ public class AppDbContext : DbContext, IApplicationDbContext
 
     public DbSet<Transaction> Transactions { get; set; } = null!;
 
+    public DbSet<Budget> Budgets { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -39,7 +41,14 @@ public class AppDbContext : DbContext, IApplicationDbContext
             new Category { Id = 3, Name = "Transport", Type = CategoryType.Expense },
             new Category { Id = 4, Name = "Rent", Type = CategoryType.Expense }
         );
-    }
 
-     
+        modelBuilder.Entity<Budget>()
+        .Property(b => b.Amount)
+        .HasPrecision(18, 2);
+
+        modelBuilder.Entity<Budget>()
+        .HasIndex(b => new { b.UserId, b.CategoryId, b.Year, b.Month })
+        .IsUnique();
+
+    }
 }

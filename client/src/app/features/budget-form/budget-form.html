@@ -1,4 +1,4 @@
-<h1>{{ isEdit() ? 'Edit income' : 'Add income' }}</h1>
+<h1>{{ isEdit() ? 'Edit budget' : 'Add budget' }}</h1>
 
 <mat-card>
   <mat-card-content>
@@ -19,26 +19,24 @@
       </mat-form-field>
 
       <mat-form-field>
-        <mat-label>Date</mat-label>
-        <input matInput [matDatepicker]="picker" formControlName="date" />
-        <mat-datepicker-toggle matIconSuffix [for]="picker" />
-        <mat-datepicker #picker />
+        <mat-label>Year</mat-label>
+        <input matInput type="number" formControlName="year" />
       </mat-form-field>
 
       <mat-form-field>
-        <mat-label>Description</mat-label>
-        <input matInput formControlName="description" maxlength="250" />
+        <mat-label>Month (1–12)</mat-label>
+        <input matInput type="number" min="1" max="12" formControlName="month" />
       </mat-form-field>
 
       @if (error()) {
-        <p class="amount-income">{{ error() }}</p>
+        <p class="amount-expense">{{ error() }}</p>
       }
 
       <div class="form-actions">
         <button mat-flat-button color="primary" type="submit" [disabled]="submitting()">
           {{ submitting() ? 'Saving…' : 'Save' }}
         </button>
-        <a mat-stroked-button routerLink="/income">Cancel</a>
+        <a mat-stroked-button routerLink="/budgets">Cancel</a>
       </div>
     </form>
   </mat-card-content>

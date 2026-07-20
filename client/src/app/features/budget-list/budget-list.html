@@ -1,0 +1,39 @@
+<div class="list-header">
+  <h1>Budgets</h1>
+  <span class="spacer"></span>
+  <a mat-flat-button color="primary" routerLink="/budgets/new">
+    Add budget
+  </a>
+</div>
+
+<p>Period: {{ month() }}/{{ year() }}</p>
+
+@if (error()) { <p class="amount-expense">{{ error() }}</p> }
+@if (loading()) { <p>Loading…</p> }
+@if (!loading() && svc.budgets().length === 0) { <p>No budgets for this month. Add your first one.</p> }
+
+@for (b of svc.budgets(); track b.id) {
+  <mat-card class="budget-card">
+    <mat-card-content>
+      <div class="budget-header">
+        <h3>{{ b.categoryName }}</h3>
+        <span class="spacer"></span>
+        <a mat-button color="primary" [routerLink]="['/budgets', b.id]">Edit</a>
+        <button mat-button color="warn" (click)="delete(b.id)">Delete</button>
+      </div>
+
+      <mat-progress-bar
+        mode="determinate"
+        [value]="percent(b.spent, b.amount)"
+        [color]="b.spent > b.amount ? 'warn' : 'primary'">
+      </mat-progress-bar>
+
+      <p>
+        Spent {{ b.spent | currency:'ZAR':'symbol-narrow' }}
+        of {{ b.amount | currency:'ZAR':'symbol-narrow' }}
+        · Remaining {{ b.remaining | currency:'ZAR':'symbol-narrow' }}
+        @if (b.spent > b.amount) { <strong class="amount-expense">(over budget)</strong> }
+      </p>
+    </mat-card-content>
+  </mat-card>
+}

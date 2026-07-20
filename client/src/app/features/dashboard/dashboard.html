@@ -1,35 +1,63 @@
-<h1>Dashboard</h1>
+<div class="greeting">
+  <h1>{{ greeting }}, {{ firstName() }} 👋</h1>
+  <p class="subtitle">Here's an update on your financial position.</p>
+</div>
 
 @if (error()) { <p class="amount-expense">{{ error() }}</p> }
 
 @if (loading()) {
   <p>Loading…</p>
 } @else {
-  <div class="cards-row">
-    <mat-card>
+  <div class="hero-row">
+    <mat-card class="hero-card">
       <mat-card-content>
-        <p>Total Income</p>
+        <p class="hero-label">Total Balance</p>
+        <h2 class="hero-value">{{ balance() | currency:'ZAR':'symbol-narrow' }}</h2>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <p>Income</p>
         <h2 class="amount-income">{{ totalIncome() | currency:'ZAR':'symbol-narrow' }}</h2>
+        <span class="muted">Total income</span>
       </mat-card-content>
     </mat-card>
 
-    <mat-card>
+    <mat-card class="stat-card">
       <mat-card-content>
-        <p>Total Expenses</p>
+        <p>Expenses</p>
         <h2 class="amount-expense">{{ totalExpenses() | currency:'ZAR':'symbol-narrow' }}</h2>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card>
-      <mat-card-content>
-        <p>Balance</p>
-        <h2>{{ balance() | currency:'ZAR':'symbol-narrow' }}</h2>
+        <span class="muted">Total expenses</span>
       </mat-card-content>
     </mat-card>
   </div>
 
-  <p style="margin-top:24px">
-    <a mat-flat-button color="primary" routerLink="/expenses">View all expenses</a>
-  </p>
-}
+  <div class="section-header">
+    <h2>Spend vs budget</h2>
+    <a mat-button routerLink="/budgets">Manage budgets</a>
+  </div>
 
+  @if (budgetSvc.budgets().length === 0) {
+    <p class="muted">No budgets for this month. <a routerLink="/budgets">Add one</a>.</p>
+  } @else {
+    <div class="budget-grid">
+      @for (b of budgetSvc.budgets(); track b.id) {
+        <mat-card class="budget-tile">
+          <mat-card-content>
+            <div class="budget-tile__top">
+              <span class="cat">{{ b.categoryName }}</span>
+              <span class="left">{{ b.remaining | currency:'ZAR':'symbol-narrow' }} left</span>
+            </div>
+            <h3>{{ b.spent | currency:'ZAR':'symbol-narrow' }}</h3>
+            <mat-progress-bar
+              mode="determinate"
+              [value]="percent(b.spent, b.amount)"
+              [color]="b.spent > b.amount ? 'warn' : 'primary'">
+            </mat-progress-bar>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+}

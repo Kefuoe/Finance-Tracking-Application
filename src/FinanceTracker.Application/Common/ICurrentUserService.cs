@@ -10,6 +10,4 @@ namespace FinanceTracker.Application.Common
     {
         int? UserId { get; }
     }
-
-
 }

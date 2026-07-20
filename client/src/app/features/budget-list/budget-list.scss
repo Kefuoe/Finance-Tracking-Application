@@ -1,0 +1,19 @@
+.list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.budget-card {
+  margin-bottom: 12px;
+}
+
+.budget-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  h3 {
+    margin: 0;
+  }
+}
